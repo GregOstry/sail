@@ -28,7 +28,8 @@ RUN apt-get update \
        php8.0-xml php8.0-zip php8.0-bcmath php8.0-soap \
        php8.0-intl php8.0-readline php8.0-pcov \
        php8.0-msgpack php8.0-igbinary php8.0-ldap \
-       php8.0-redis php8.0-swoole php8.0-xdebug \
+       php8.0-redis php8.0-swoole php8.0-xdebug php-pear \
+
     && php -r "readfile('http://getcomposer.org/installer');" | php -- --install-dir=/usr/bin/ --filename=composer \
     && curl -sL https://deb.nodesource.com/setup_$NODE_VERSION.x | bash - \
     && apt-get install -y nodejs \
@@ -41,6 +42,18 @@ RUN apt-get update \
     && apt-get -y autoremove \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+RUN curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add -
+RUN curl https://packages.microsoft.com/config/ubuntu/21.04/prod.list > /etc/apt/sources.list.d/mssql-release.list
+
+RUN apt-get update \
+      && ACCEPT_EULA=Y apt-get install -y msodbcsql17 unixodbc-dev
+
+RUN pecl install sqlsrv pdo_sqlsrv
+
+RUN printf "; priority=20\nextension=sqlsrv.so\n" > /etc/php/8.0/mods-available/sqlsrv.ini \
+    && printf "; priority=30\nextension=pdo_sqlsrv.so\n" > /etc/php/8.0/mods-available/pdo_sqlsrv.ini \
+    && phpenmod -v 8.0 sqlsrv pdo_sqlsrv
 
 RUN setcap "cap_net_bind_service=+ep" /usr/bin/php8.0
 
